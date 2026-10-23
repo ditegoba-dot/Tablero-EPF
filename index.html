@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tablero de Tarjetas Comparativas - HIC</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+        .drag-target {
+            transition: all 0.2s ease-in-out;
+        }
+        .drag-target.drag-over {
+            border-color: #0284c7 !important;
+            background-color: #f0f9ff !important;
+            transform: scale(1.02);
+        }
+        .draggable-card {
+            cursor: grab;
+            touch-action: none;
+        }
+        .draggable-card:active {
+            cursor: grabbing;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Top Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand Logo Header -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center font-bold text-lg shadow-md">
+                    HIC
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-slate-900 text-base md:text-lg leading-tight flex items-center gap-2">
+                        Cuidar nos conecta
+                        <span class="text-xs font-semibold px-2 py-0.5 bg-sky-100 text-sky-800 rounded-full">Interactive</span>
+                    </h1>
+                    <p class="text-xs text-slate-500">Relaciona cada caso con el tema correspondiente</p>
+                </div>
+            </div>
+
+            <!-- Score / Progress -->
+            <div class="flex items-center space-x-6">
+                <div class="text-right">
+                    <span class="text-[10px] sm:text-xs text-slate-400 font-bold block uppercase tracking-wider">PUNTAJE</span>
+                    <span id="score-text" class="text-lg md:text-xl font-extrabold text-sky-600">0 pts</span>
+                </div>
+                <div class="text-right">
+                    <span class="text-[10px] sm:text-xs text-slate-400 font-bold block uppercase tracking-wider">PROGRESO</span>
+                    <span id="progress-text" class="text-xs md:text-sm font-bold text-slate-700">0 / 6</span>
+                </div>
+                <button id="reset-btn" title="Reiniciar Actividad" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition">
+                    <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full flex flex-col justify-center">
+
+        <!-- Title Banner -->
+        <div class="bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white rounded-2xl p-4 md:p-6 mb-6 shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center space-x-4">
+                <div class="p-3 bg-white/20 backdrop-blur-md rounded-2xl">
+                    <i data-lucide="lightbulb" class="w-8 h-8 text-yellow-300"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl md:text-2xl font-extrabold">Cuidar nos conecta</h2>
+                    <p class="text-sky-100 text-xs md:text-sm">Relaciona cada caso desplazando o seleccionando la opción correspondiente desde el panel derecho.</p>
+                </div>
+            </div>
+            <div class="shrink-0 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl text-xs font-medium text-sky-100 text-center border border-white/20">
+                <span class="block text-white font-bold text-sm">6 Casos</span>
+                Evaluación de Estrategias
+            </div>
+        </div>
+
+        <!-- Board Grid Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- LEFT SIDE: CASOS (Target Drop Zones) -->
+            <div class="lg:col-span-7 space-y-3.5">
+                <div class="bg-sky-900 text-white px-5 py-3 rounded-xl font-extrabold text-base tracking-wider uppercase flex items-center justify-between shadow-sm">
+                    <span class="flex items-center gap-2">
+                        <i data-lucide="users" class="w-5 h-5 text-sky-400"></i>
+                        CASOS
+                    </span>
+                    <span class="text-xs font-normal text-sky-200">Asigna la estrategia</span>
+                </div>
+
+                <!-- Cases List Container -->
+                <div id="cases-container" class="space-y-3">
+                    <!-- Dynamic rendering of Cases -->
+                </div>
+            </div>
+
+            <!-- RIGHT SIDE: ¿DE QUÉ SE TRATA? (Draggable / Selectable Categories) -->
+            <div class="lg:col-span-5 space-y-3.5 lg:sticky lg:top-20">
+                <div class="bg-sky-700 text-white px-5 py-3 rounded-xl font-extrabold text-base tracking-wider uppercase flex items-center justify-between shadow-sm">
+                    <span class="flex items-center gap-2">
+                        <i data-lucide="help-circle" class="w-5 h-5 text-sky-300"></i>
+                        ¿DE QUÉ SE TRATA?
+                    </span>
+                    <span class="text-xs font-normal text-sky-200">Relaciona cada caso</span>
+                </div>
+
+                <!-- Strategic Cards Options -->
+                <div class="space-y-3.5" id="categories-container">
+
+                    <!-- Option 1: ENFECH -->
+                    <div id="cat-enfech" draggable="true" ondragstart="handleDragStart(event, 'enfech')" 
+                         class="draggable-card bg-white border-2 border-indigo-200 hover:border-indigo-500 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex items-center space-x-4">
+                        <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
+                            <i data-lucide="heart-handshake" class="w-7 h-7"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-extrabold text-indigo-950 text-lg leading-snug">ENFECH</h3>
+                            <span class="inline-block text-[10px] font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded mt-1">
+                                Arrastra o toca para seleccionar
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Option 2: Socio Cuidador -->
+                    <div id="cat-socio" draggable="true" ondragstart="handleDragStart(event, 'socio')" 
+                         class="draggable-card bg-white border-2 border-emerald-200 hover:border-emerald-500 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex items-center space-x-4">
+                        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
+                            <i data-lucide="users-round" class="w-7 h-7"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-extrabold text-emerald-950 text-lg leading-snug">Socio Cuidador: Manos que acompañan</h3>
+                            <span class="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded mt-1">
+                                Arrastra o toca para seleccionar
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Option 3: Educación al paciente -->
+                    <div id="cat-educacion" draggable="true" ondragstart="handleDragStart(event, 'educacion')" 
+                         class="draggable-card bg-white border-2 border-amber-200 hover:border-amber-500 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex items-center space-x-4">
+                        <div class="p-3 bg-amber-50 text-amber-600 rounded-xl shrink-0">
+                            <i data-lucide="book-open-check" class="w-7 h-7"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-extrabold text-amber-950 text-lg leading-snug">Educación al paciente</h3>
+                            <span class="inline-block text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded mt-1">
+                                Arrastra o toca para seleccionar
+                            </span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Helper Banner -->
+                <div class="bg-sky-50 border border-sky-200 rounded-xl p-3 text-xs text-sky-800 flex items-center space-x-2">
+                    <i data-lucide="info" class="w-4 h-4 text-sky-600 shrink-0"></i>
+                    <span><strong>Indicaciones:</strong> Arrastra la opción adecuada al caso o toca la tarjeta y luego presiona sobre el caso correspondiente.</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- End Game Modal -->
+        <div id="results-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl border border-slate-100 text-center space-y-6 animate-fade-in">
+                <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                    <i data-lucide="award" class="w-10 h-10"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-extrabold text-slate-900">¡Actividad Completada!</h2>
+                    <p class="text-slate-500 text-sm mt-1">Has relacionado exitosamente todos los casos con sus respectivas estrategias.</p>
+                </div>
+
+                <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200 grid grid-cols-2 gap-4">
+                    <div>
+                        <span class="text-xs text-slate-400 font-medium block">PUNTUACIÓN FINAL</span>
+                        <span id="modal-score" class="text-2xl font-black text-sky-600">0 pts</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 font-medium block">PRECISIÓN</span>
+                        <span id="modal-accuracy" class="text-2xl font-black text-emerald-600">0%</span>
+                    </div>
+                </div>
+
+                <p id="modal-feedback-text" class="text-xs text-slate-600 italic">
+                    ¡Gran trabajo identificando cada caso con su tema correspondiente!
+                </p>
+
+                <button onclick="restartGame()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-sky-600/30 flex items-center justify-center space-x-2">
+                    <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                    <span>Jugar Nuevamente</span>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-3 mt-6">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <span>HIC - Personas que cuidan personas</span>
+            <span>Simulador Didáctico e Interactivo de Estrategias de Cuidado</span>
+        </div>
+    </footer>
+
+    <script>
+        // Data derived strictly from user image & case descriptions
+        const casesData = [
+            {
+                id: 1,
+                number: 1,
+                title: 'Don Carlos',
+                age: '59 años',
+                badgeBg: 'bg-emerald-500 text-white',
+                description: 'Ingresa por hipertensión. Se siente angustiado por no entender la comida que le van a dar y pide que le expliquen con calma y sin rodeos cómo va a ser su rutina diaria en la habitación.',
+                correctCategory: 'enfech',
+                categoryLabel: 'ENFECH'
+            },
+            {
+                id: 2,
+                number: 2,
+                title: 'Doña Marta',
+                age: '68 años',
+                badgeBg: 'bg-emerald-500 text-white',
+                description: 'Hospitalizada. Le cuesta conciliar el sueño si la luz de la habitación queda encendida. Además, le gusta caminar un poco por la mañana para no sentirse "tiesa" y mantener su meditación/lectura espiritual a primera hora.',
+                correctCategory: 'enfech',
+                categoryLabel: 'ENFECH'
+            },
+            {
+                id: 3,
+                number: 3,
+                title: 'Don Gonzalo',
+                age: '75 años',
+                badgeBg: 'bg-sky-500 text-white',
+                description: 'Requiere acompañamiento constante. Su hijo acude a hacerle compañía y ayudarlo durante el almuerzo, pero pide que la enfermera le enseñe a ayudarlo a pararse de la cama de forma segura antes de irse a casa.',
+                correctCategory: 'socio',
+                categoryLabel: 'Socio Cuidador'
+            },
+            {
+                id: 4,
+                number: 4,
+                title: 'Doña Gloria',
+                age: '64 años',
+                badgeBg: 'bg-sky-500 text-white',
+                description: 'Lista para regresar a su hogar tras una cirugía. Su hermana pequeña cuidará de ella, pero necesita que el equipo de enfermería valide el espacio en casa para acomodar los muebles y evitar tropezones.',
+                correctCategory: 'socio',
+                categoryLabel: 'Socio Cuidador'
+            },
+            {
+                id: 5,
+                number: 5,
+                title: 'Carlos',
+                age: '52 años',
+                badgeBg: 'bg-amber-500 text-white',
+                description: 'Diagnosticado con hipertensión arterial. Solicita información sobre alimentación, ejercicio y el tratamiento antes del egreso.',
+                correctCategory: 'educacion',
+                categoryLabel: 'Educación al paciente'
+            },
+            {
+                id: 6,
+                number: 6,
+                title: 'Carmen',
+                age: '47 años',
+                badgeBg: 'bg-amber-500 text-white',
+                description: 'En tratamiento oncológico, consulta cómo manejar los efectos secundarios y qué signos de alarma debe tener en cuenta. Desea recibir orientación para continuar su cuidado en casa.',
+                correctCategory: 'educacion',
+                categoryLabel: 'Educación al paciente'
+            }
+        ];
+
+        // State
+        let score = 0;
+        let completedCases = 0;
+        let selectedCategoryKey = null; // For click-to-assign on mobile
+        let userAssignments = {};
+
+        // DOM elements
+        const casesContainer = document.getElementById('cases-container');
+        const scoreText = document.getElementById('score-text');
+        const progressText = document.getElementById('progress-text');
+        const resultsModal = document.getElementById('results-modal');
+        const resetBtn = document.getElementById('reset-btn');
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            renderCases();
+            setupCategoryClicks();
+            resetBtn.addEventListener('click', restartGame);
+            lucide.createIcons();
+        });
+
+        // Render Cases Left Side
+        function renderCases() {
+            casesContainer.innerHTML = '';
+            casesData.forEach(c => {
+                const caseCard = document.createElement('div');
+                caseCard.id = `case-card-${c.id}`;
+                caseCard.className = `drag-target bg-white border-2 border-slate-200 rounded-2xl p-4 shadow-sm relative transition-all duration-300`;
+                
+                // Drag & Drop event listeners
+                caseCard.setAttribute('ondragover', 'handleDragOver(event)');
+                caseCard.setAttribute('ondragleave', 'handleDragLeave(event)');
+                caseCard.setAttribute('ondrop', `handleDrop(event, ${c.id})`);
+
+                caseCard.innerHTML = `
+                    <div class="flex items-start gap-3.5">
+                        <div class="w-8 h-8 rounded-full ${c.badgeBg} font-extrabold text-sm flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                            ${c.number}
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-1">
+                                <h4 class="font-bold text-slate-900 text-sm md:text-base">${c.title}, <span class="text-slate-500 font-normal text-xs md:text-sm">${c.age}</span></h4>
+                                <span id="status-badge-${c.id}" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-400">
+                                    Pendiente
+                                </span>
+                            </div>
+                            <p class="text-xs md:text-sm text-slate-600 leading-relaxed mb-3">
+                                "${c.description}"
+                            </p>
+
+                            <!-- Drop Zone Target / Selected Result -->
+                            <div id="drop-zone-${c.id}" onclick="assignSelectedCategory(${c.id})" class="cursor-pointer border-2 border-dashed border-slate-300 hover:border-sky-400 bg-slate-50 hover:bg-sky-50/50 rounded-xl p-2.5 text-center text-xs font-semibold text-slate-500 transition-all flex items-center justify-center gap-2">
+                                <i data-lucide="arrow-down-to-line" class="w-4 h-4 text-slate-400"></i>
+                                <span>Arrastra aquí la estrategia o haz clic para asignar</span>
+                            </div>
+
+                            <!-- Feedback Info -->
+                            <div id="feedback-${c.id}" class="hidden mt-2 text-xs font-medium p-2 rounded-lg"></div>
+                        </div>
+                    </div>
+                `;
+                casesContainer.appendChild(caseCard);
+            });
+            lucide.createIcons();
+        }
+
+        // Drag & Drop Handlers
+        function handleDragStart(event, categoryKey) {
+            event.dataTransfer.setData('text/plain', categoryKey);
+            selectedCategoryKey = categoryKey;
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            const target = event.currentTarget;
+            target.classList.add('drag-over');
+        }
+
+        function handleDragLeave(event) {
+            const target = event.currentTarget;
+            target.classList.remove('drag-over');
+        }
+
+        function handleDrop(event, caseId) {
+            event.preventDefault();
+            const target = event.currentTarget;
+            target.classList.remove('drag-over');
+
+            const categoryKey = event.dataTransfer.getData('text/plain') || selectedCategoryKey;
+            if (categoryKey) {
+                processAssignment(caseId, categoryKey);
+            }
+        }
+
+        // Mobile Selection Logic
+        function setupCategoryClicks() {
+            const catEnfech = document.getElementById('cat-enfech');
+            const catSocio = document.getElementById('cat-socio');
+            const catEducacion = document.getElementById('cat-educacion');
+
+            [
+                { el: catEnfech, key: 'enfech' },
+                { el: catSocio, key: 'socio' },
+                { el: catEducacion, key: 'educacion' }
+            ].forEach(item => {
+                item.el.addEventListener('click', () => {
+                    // Highlight selected category card
+                    document.querySelectorAll('.draggable-card').forEach(card => {
+                        card.classList.remove('ring-4', 'ring-sky-400', 'border-sky-500');
+                    });
+                    item.el.classList.add('ring-4', 'ring-sky-400', 'border-sky-500');
+                    selectedCategoryKey = item.key;
+                });
+            });
+        }
+
+        function assignSelectedCategory(caseId) {
+            if (!selectedCategoryKey) {
+                // Shake or alert user to select a category first
+                alert('Por favor, selecciona o arrastra primero una de las tarjetas de estrategia a la derecha.');
+                return;
+            }
+            processAssignment(caseId, selectedCategoryKey);
+        }
+
+        // Process Assignment and Update Score
+        function processAssignment(caseId, assignedCategory) {
+            if (userAssignments[caseId]) return; // Already answered
+
+            const caseObj = casesData.find(c => c.id === caseId);
+            const isCorrect = caseObj.correctCategory === assignedCategory;
+
+            userAssignments[caseId] = {
+                assigned: assignedCategory,
+                isCorrect: isCorrect
+            };
+
+            completedCases++;
+            if (isCorrect) {
+                score += 100;
+            }
+
+            updateUI(caseId, caseObj, assignedCategory, isCorrect);
+            checkGameEnd();
+        }
+
+        function updateUI(caseId, caseObj, assignedCategory, isCorrect) {
+            // Header stats
+            scoreText.textContent = `${score} pts`;
+            progressText.textContent = `${completedCases} / ${casesData.length}`;
+
+            const card = document.getElementById(`case-card-${caseId}`);
+            const dropZone = document.getElementById(`drop-zone-${caseId}`);
+            const statusBadge = document.getElementById(`status-badge-${caseId}`);
+            const feedback = document.getElementById(`feedback-${caseId}`);
+
+            const categoryNames = {
+                enfech: 'ENFECH',
+                socio: 'Socio Cuidador',
+                educacion: 'Educación al paciente'
+            };
+
+            if (isCorrect) {
+                card.classList.remove('border-slate-200');
+                card.classList.add('border-emerald-400', 'bg-emerald-50/20');
+
+                statusBadge.className = 'text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+                statusBadge.textContent = 'Correcto (+100)';
+
+                dropZone.className = 'bg-emerald-100 border-2 border-emerald-400 text-emerald-900 rounded-xl p-2.5 text-xs font-bold flex items-center justify-between';
+                dropZone.innerHTML = `
+                    <span class="flex items-center gap-2">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
+                        Estrategia: ${categoryNames[assignedCategory]}
+                    </span>
+                    <i data-lucide="sparkles" class="w-4 h-4 text-emerald-500"></i>
+                `;
+
+                feedback.classList.remove('hidden');
+                feedback.className = 'mt-2 text-xs font-semibold p-2.5 rounded-lg bg-emerald-100/70 text-emerald-900 flex items-center gap-2';
+                feedback.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-700 shrink-0"></i> ¡Excelente! Corresponde a ${caseObj.categoryLabel}.`;
+
+            } else {
+                card.classList.remove('border-slate-200');
+                card.classList.add('border-rose-300', 'bg-rose-50/20');
+
+                statusBadge.className = 'text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-100 text-rose-800';
+                statusBadge.textContent = 'Incorrecto (0 pts)';
+
+                dropZone.className = 'bg-rose-100 border-2 border-rose-300 text-rose-900 rounded-xl p-2.5 text-xs font-bold flex items-center justify-between';
+                dropZone.innerHTML = `
+                    <span class="flex items-center gap-2">
+                        <i data-lucide="x-circle" class="w-4 h-4 text-rose-600"></i>
+                        Asignado: ${categoryNames[assignedCategory]}
+                    </span>
+                    <span class="text-[10px] bg-white px-2 py-0.5 rounded text-rose-700 font-extrabold">Correcto: ${caseObj.categoryLabel}</span>
+                `;
+
+                feedback.classList.remove('hidden');
+                feedback.className = 'mt-2 text-xs font-semibold p-2.5 rounded-lg bg-rose-100/70 text-rose-900 flex items-center gap-2';
+                feedback.innerHTML = `<i data-lucide="alert-circle" class="w-4 h-4 text-rose-700 shrink-0"></i> La estrategia adecuada era ${caseObj.categoryLabel}.`;
+            }
+
+            lucide.createIcons();
+        }
+
+        function checkGameEnd() {
+            if (completedCases >= casesData.length) {
+                setTimeout(() => {
+                    const accuracy = Math.round((score / (casesData.length * 100)) * 100);
+                    document.getElementById('modal-score').textContent = `${score} / ${casesData.length * 100} pts`;
+                    document.getElementById('modal-accuracy').textContent = `${accuracy}%`;
+
+                    if (accuracy >= 80 && typeof confetti === 'function') {
+                        confetti({
+                            particleCount: 120,
+                            spread: 70,
+                            origin: { y: 0.6 }
+                        });
+                    }
+
+                    resultsModal.classList.remove('hidden');
+                }, 500);
+            }
+        }
+
+        function restartGame() {
+            score = 0;
+            completedCases = 0;
+            selectedCategoryKey = null;
+            userAssignments = {};
+
+            scoreText.textContent = '0 pts';
+            progressText.textContent = `0 / ${casesData.length}`;
+            resultsModal.classList.add('hidden');
+
+            document.querySelectorAll('.draggable-card').forEach(card => {
+                card.classList.remove('ring-4', 'ring-sky-400', 'border-sky-500');
+            });
+
+            renderCases();
+        }
+    </script>
+</body>
+</html>
