@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablero de Tarjetas Comparativas - HIC</title>
+    <title>Cuidar nos conecta - HIC</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Tone.js for Web Audio SFX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -56,13 +58,13 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <!-- Brand Logo Header -->
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center font-bold text-lg shadow-md">
+                <div class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center font-extrabold text-lg shadow-md">
                     HIC
                 </div>
                 <div>
                     <h1 class="font-extrabold text-slate-900 text-base md:text-lg leading-tight flex items-center gap-2">
                         Cuidar nos conecta
-                        <span class="text-xs font-semibold px-2 py-0.5 bg-sky-100 text-sky-800 rounded-full">Interactive</span>
+                        <span class="text-xs font-semibold px-2 py-0.5 bg-sky-100 text-sky-800 rounded-full">Interactivo</span>
                     </h1>
                     <p class="text-xs text-slate-500">Relaciona cada caso con el tema correspondiente</p>
                 </div>
@@ -72,7 +74,7 @@
             <div class="flex items-center space-x-6">
                 <div class="text-right">
                     <span class="text-[10px] sm:text-xs text-slate-400 font-bold block uppercase tracking-wider">PUNTAJE</span>
-                    <span id="score-text" class="text-lg md:text-xl font-extrabold text-sky-600">0 pts</span>
+                    <span id="score-text" class="text-lg md:text-xl font-extrabold text-sky-600">0 / 600</span>
                 </div>
                 <div class="text-right">
                     <span class="text-[10px] sm:text-xs text-slate-400 font-bold block uppercase tracking-wider">PROGRESO</span>
@@ -101,7 +103,7 @@
             </div>
             <div class="shrink-0 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl text-xs font-medium text-sky-100 text-center border border-white/20">
                 <span class="block text-white font-bold text-sm">6 Casos</span>
-                Evaluación de Estrategias
+                Estrategias de Cuidado
             </div>
         </div>
 
@@ -151,7 +153,7 @@
                         </div>
                     </div>
 
-                    <!-- Option 2: Socio Cuidador -->
+                    <!-- Option 2: Socio Cuidador: Manos que acompañan -->
                     <div id="cat-socio" draggable="true" ondragstart="handleDragStart(event, 'socio')" 
                          class="draggable-card bg-white border-2 border-emerald-200 hover:border-emerald-500 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex items-center space-x-4">
                         <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
@@ -193,27 +195,27 @@
         <!-- End Game Modal -->
         <div id="results-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
             <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl border border-slate-100 text-center space-y-6 animate-fade-in">
-                <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
-                    <i data-lucide="award" class="w-10 h-10"></i>
+                <div id="modal-icon-container" class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                    <i id="modal-icon" data-lucide="award" class="w-10 h-10"></i>
                 </div>
                 <div>
-                    <h2 class="text-2xl font-extrabold text-slate-900">¡Actividad Completada!</h2>
-                    <p class="text-slate-500 text-sm mt-1">Has relacionado exitosamente todos los casos con sus respectivas estrategias.</p>
+                    <h2 id="modal-title" class="text-2xl font-extrabold text-slate-900">¡Actividad Completada!</h2>
+                    <p id="modal-subtitle" class="text-slate-500 text-sm mt-1">Has relacionado exitosamente todos los casos.</p>
                 </div>
 
                 <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200 grid grid-cols-2 gap-4">
                     <div>
                         <span class="text-xs text-slate-400 font-medium block">PUNTUACIÓN FINAL</span>
-                        <span id="modal-score" class="text-2xl font-black text-sky-600">0 pts</span>
+                        <span id="modal-score" class="text-2xl font-black text-sky-600">600 / 600</span>
                     </div>
                     <div>
                         <span class="text-xs text-slate-400 font-medium block">PRECISIÓN</span>
-                        <span id="modal-accuracy" class="text-2xl font-black text-emerald-600">0%</span>
+                        <span id="modal-accuracy" class="text-2xl font-black text-emerald-600">100%</span>
                     </div>
                 </div>
 
                 <p id="modal-feedback-text" class="text-xs text-slate-600 italic">
-                    ¡Gran trabajo identificando cada caso con su tema correspondiente!
+                    ¡Excelente trabajo identificando cada caso con su tema correspondiente!
                 </p>
 
                 <button onclick="restartGame()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-sky-600/30 flex items-center justify-center space-x-2">
@@ -229,7 +231,7 @@
     <footer class="bg-white border-t border-slate-200 py-3 mt-6">
         <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400 flex flex-col sm:flex-row justify-between items-center gap-2">
             <span>HIC - Personas que cuidan personas</span>
-            <span>Simulador Didáctico e Interactivo de Estrategias de Cuidado</span>
+            <span>Cuidar nos conecta - Simulador Interactivo</span>
         </div>
     </footer>
 
@@ -241,7 +243,7 @@
                 number: 1,
                 title: 'Don Carlos',
                 age: '59 años',
-                badgeBg: 'bg-emerald-500 text-white',
+                badgeBg: 'bg-indigo-500 text-white',
                 description: 'Ingresa por hipertensión. Se siente angustiado por no entender la comida que le van a dar y pide que le expliquen con calma y sin rodeos cómo va a ser su rutina diaria en la habitación.',
                 correctCategory: 'enfech',
                 categoryLabel: 'ENFECH'
@@ -251,7 +253,7 @@
                 number: 2,
                 title: 'Doña Marta',
                 age: '68 años',
-                badgeBg: 'bg-emerald-500 text-white',
+                badgeBg: 'bg-indigo-500 text-white',
                 description: 'Hospitalizada. Le cuesta conciliar el sueño si la luz de la habitación queda encendida. Además, le gusta caminar un poco por la mañana para no sentirse "tiesa" y mantener su meditación/lectura espiritual a primera hora.',
                 correctCategory: 'enfech',
                 categoryLabel: 'ENFECH'
@@ -261,20 +263,20 @@
                 number: 3,
                 title: 'Don Gonzalo',
                 age: '75 años',
-                badgeBg: 'bg-sky-500 text-white',
+                badgeBg: 'bg-emerald-500 text-white',
                 description: 'Requiere acompañamiento constante. Su hijo acude a hacerle compañía y ayudarlo durante el almuerzo, pero pide que la enfermera le enseñe a ayudarlo a pararse de la cama de forma segura antes de irse a casa.',
                 correctCategory: 'socio',
-                categoryLabel: 'Socio Cuidador'
+                categoryLabel: 'Socio Cuidador: Manos que acompañan'
             },
             {
                 id: 4,
                 number: 4,
                 title: 'Doña Gloria',
                 age: '64 años',
-                badgeBg: 'bg-sky-500 text-white',
+                badgeBg: 'bg-emerald-500 text-white',
                 description: 'Lista para regresar a su hogar tras una cirugía. Su hermana pequeña cuidará de ella, pero necesita que el equipo de enfermería valide el espacio en casa para acomodar los muebles y evitar tropezones.',
                 correctCategory: 'socio',
-                categoryLabel: 'Socio Cuidador'
+                categoryLabel: 'Socio Cuidador: Manos que acompañan'
             },
             {
                 id: 5,
@@ -303,6 +305,43 @@
         let completedCases = 0;
         let selectedCategoryKey = null; // For click-to-assign on mobile
         let userAssignments = {};
+        let audioInitialized = false;
+
+        // Sound Effects synthesizers using Tone.js
+        let synth, polySynth;
+
+        function initAudio() {
+            if (!audioInitialized && typeof Tone !== 'undefined') {
+                Tone.start();
+                synth = new Tone.Synth().toDestination();
+                polySynth = new Tone.PolySynth(Tone.Synth).toDestination();
+                audioInitialized = true;
+            }
+        }
+
+        // Play Sound FX
+        function playSound(type) {
+            initAudio();
+            if (!audioInitialized) return;
+
+            try {
+                const now = Tone.now();
+                if (type === 'correct') {
+                    // Ascending cheerful major chime
+                    polySynth.triggerAttackRelease(["C5", "E5", "G5"], "8n", now);
+                } else if (type === 'incorrect') {
+                    // Low buzz / error tone
+                    synth.triggerAttackRelease("C3", "8n", now);
+                } else if (type === 'winner') {
+                    // Fanfare audio sequence for 600/600 perfect score
+                    polySynth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "8n", now);
+                    polySynth.triggerAttackRelease(["G4", "B4", "D5", "G5"], "8n", now + 0.2);
+                    polySynth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "4n", now + 0.4);
+                }
+            } catch (e) {
+                console.log('Audio feedback:', type);
+            }
+        }
 
         // DOM elements
         const casesContainer = document.getElementById('cases-container');
@@ -316,6 +355,7 @@
             renderCases();
             setupCategoryClicks();
             resetBtn.addEventListener('click', restartGame);
+            document.body.addEventListener('click', initAudio, { once: true });
             lucide.createIcons();
         });
 
@@ -366,6 +406,7 @@
 
         // Drag & Drop Handlers
         function handleDragStart(event, categoryKey) {
+            initAudio();
             event.dataTransfer.setData('text/plain', categoryKey);
             selectedCategoryKey = categoryKey;
         }
@@ -404,6 +445,7 @@
                 { el: catEducacion, key: 'educacion' }
             ].forEach(item => {
                 item.el.addEventListener('click', () => {
+                    initAudio();
                     // Highlight selected category card
                     document.querySelectorAll('.draggable-card').forEach(card => {
                         card.classList.remove('ring-4', 'ring-sky-400', 'border-sky-500');
@@ -416,8 +458,6 @@
 
         function assignSelectedCategory(caseId) {
             if (!selectedCategoryKey) {
-                // Shake or alert user to select a category first
-                alert('Por favor, selecciona o arrastra primero una de las tarjetas de estrategia a la derecha.');
                 return;
             }
             processAssignment(caseId, selectedCategoryKey);
@@ -438,6 +478,9 @@
             completedCases++;
             if (isCorrect) {
                 score += 100;
+                playSound('correct');
+            } else {
+                playSound('incorrect');
             }
 
             updateUI(caseId, caseObj, assignedCategory, isCorrect);
@@ -446,7 +489,7 @@
 
         function updateUI(caseId, caseObj, assignedCategory, isCorrect) {
             // Header stats
-            scoreText.textContent = `${score} pts`;
+            scoreText.textContent = `${score} / 600`;
             progressText.textContent = `${completedCases} / ${casesData.length}`;
 
             const card = document.getElementById(`case-card-${caseId}`);
@@ -456,7 +499,7 @@
 
             const categoryNames = {
                 enfech: 'ENFECH',
-                socio: 'Socio Cuidador',
+                socio: 'Socio Cuidador: Manos que acompañan',
                 educacion: 'Educación al paciente'
             };
 
@@ -507,20 +550,34 @@
         function checkGameEnd() {
             if (completedCases >= casesData.length) {
                 setTimeout(() => {
-                    const accuracy = Math.round((score / (casesData.length * 100)) * 100);
-                    document.getElementById('modal-score').textContent = `${score} / ${casesData.length * 100} pts`;
+                    const accuracy = Math.round((score / 600) * 100);
+                    document.getElementById('modal-score').textContent = `${score} / 600`;
                     document.getElementById('modal-accuracy').textContent = `${accuracy}%`;
 
-                    if (accuracy >= 80 && typeof confetti === 'function') {
-                        confetti({
-                            particleCount: 120,
-                            spread: 70,
-                            origin: { y: 0.6 }
-                        });
+                    const modalTitle = document.getElementById('modal-title');
+                    const modalSubtitle = document.getElementById('modal-subtitle');
+                    const modalFeedback = document.getElementById('modal-feedback-text');
+
+                    if (score === 600) {
+                        playSound('winner');
+                        if (typeof confetti === 'function') {
+                            confetti({
+                                particleCount: 150,
+                                spread: 80,
+                                origin: { y: 0.6 }
+                            });
+                        }
+                        modalTitle.textContent = "¡Puntaje Perfecto! 🎉";
+                        modalSubtitle.textContent = "¡Has logrado 600/600 puntos con total precisión!";
+                        modalFeedback.textContent = "¡Demuestras un dominio excepcional de la estrategia Cuidar nos conecta!";
+                    } else {
+                        modalTitle.textContent = "¡Actividad Completada!";
+                        modalSubtitle.textContent = "Has relacionado los 6 casos estratégicos.";
+                        modalFeedback.textContent = "Buen trabajo. Revisa tus respuestas para afianzar los conceptos de cuidado.";
                     }
 
                     resultsModal.classList.remove('hidden');
-                }, 500);
+                }, 600);
             }
         }
 
@@ -530,7 +587,7 @@
             selectedCategoryKey = null;
             userAssignments = {};
 
-            scoreText.textContent = '0 pts';
+            scoreText.textContent = '0 / 600';
             progressText.textContent = `0 / ${casesData.length}`;
             resultsModal.classList.add('hidden');
 
